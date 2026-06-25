@@ -20,8 +20,19 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-// Middleware
-app.use(cors());
+// ✅ FIXED CORS - Allows your frontend to connect
+app.use(cors({
+  origin: [
+    'https://ess-mrbs.vercel.app',
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://ess-mrbs.onrender.com'
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
