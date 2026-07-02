@@ -1,9 +1,3 @@
-/**
- * Application Constants
- * Centralized configuration for the ESS Meeting Room Booking System
- */
-
-// User Roles
 const ROLES = {
   ADMIN: 'admin',
   REGISTERED: 'registered'
