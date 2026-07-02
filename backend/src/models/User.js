@@ -1,17 +1,9 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-/**
- * User Schema - Professional Meeting Room Booking System
- * 
- * This schema defines the structure for user accounts in the ESS MRBS.
- * Users can be either 'admin' or 'registered' with different permissions.
- */
 const UserSchema = new mongoose.Schema(
   {
-    /**
-     * Personal Information
-     */
+   
     fullName: {
       type: String,
       required: [true, "Full name is required"],
@@ -24,10 +16,7 @@ const UserSchema = new mongoose.Schema(
       }
     },
 
-    /**
-     * Username - Used for login (required by system requirements)
-     * Must be unique, lowercase, and contain only letters, numbers, underscore
-     */
+
     username: {
       type: String,
       required: [true, "Username is required"],
@@ -42,11 +31,6 @@ const UserSchema = new mongoose.Schema(
       ],
       index: true
     },
-
-    /**
-     * Email - Optional as per system requirements
-     * If provided, must be unique and valid email format
-     */
     email: {
       type: String,
       required: false,
@@ -66,10 +50,7 @@ const UserSchema = new mongoose.Schema(
       }
     },
 
-    /**
-     * Password - Hashed using bcrypt
-     * Not returned in queries by default (select: false)
-     */
+   
     password: {
       type: String,
       required: [true, "Password is required"],
@@ -78,10 +59,6 @@ const UserSchema = new mongoose.Schema(
       select: false,
     },
 
-    /**
-     * Department - Must match the system departments
-     * Required for user management
-     */
     department: {
       type: String,
       required: [true, "Department is required"],
@@ -95,11 +72,6 @@ const UserSchema = new mongoose.Schema(
       index: true
     },
 
-    /**
-     * Role - Defines user permissions
-     * - 'admin': Full system access
-     * - 'registered': Standard user access
-     */
     role: {
       type: String,
       enum: ["admin", "registered"],
@@ -107,9 +79,6 @@ const UserSchema = new mongoose.Schema(
       index: true
     },
 
-    /**
-     * Audit Information
-     */
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -138,24 +107,14 @@ const UserSchema = new mongoose.Schema(
     toObject: { virtuals: true }
   }
 );
-
-/**
- * Indexes for optimal query performance
- */
 UserSchema.index({ role: 1 });
 UserSchema.index({ department: 1, role: 1 });
 UserSchema.index({ createdAt: -1 });
-
-/**
- * Pre-save middleware - Hash password before saving
- * Only hash if password is modified
- */
 UserSchema.pre("save", async function (next) {
   try {
     if (!this.isModified("password")) {
       return next();
     }
-
     // Generate salt and hash password
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
@@ -170,25 +129,12 @@ UserSchema.pre("save", async function (next) {
   }
 });
 
-/**
- * Pre-save middleware - Format full name on save
- */
 UserSchema.pre("save", function (next) {
   if (this.fullName) {
     this.fullName = this.fullName.replace(/\s+/g, ' ').trim();
   }
   next();
 });
-
-/**
- * Instance Methods
- */
-
-/**
- * Compare entered password with stored hashed password
- * @param {string} enteredPassword - Plain text password to compare
- * @returns {Promise<boolean>} - True if passwords match
- */
 UserSchema.methods.comparePassword = async function (enteredPassword) {
   try {
     return await bcrypt.compare(enteredPassword, this.password);
@@ -197,18 +143,11 @@ UserSchema.methods.comparePassword = async function (enteredPassword) {
   }
 };
 
-/**
- * Check if account is locked
- * @returns {boolean} - True if account is locked
- */
 UserSchema.methods.isLocked = function () {
   if (!this.lockedUntil) return false;
   return this.lockedUntil > new Date();
 };
 
-/**
- * Increment login attempts
- */
 UserSchema.methods.incrementLoginAttempts = async function () {
   this.loginAttempts += 1;
   
@@ -221,9 +160,6 @@ UserSchema.methods.incrementLoginAttempts = async function () {
   return this;
 };
 
-/**
- * Reset login attempts on successful login
- */
 UserSchema.methods.resetLoginAttempts = async function () {
   this.loginAttempts = 0;
   this.lockedUntil = null;
@@ -232,20 +168,9 @@ UserSchema.methods.resetLoginAttempts = async function () {
   return this;
 };
 
-/**
- * Virtual Properties
- */
-
-/**
- * Full name virtual (already stored as field)
- */
 UserSchema.virtual("displayName").get(function () {
   return this.fullName || `${this.firstName} ${this.lastName}`;
 });
-
-/**
- * Short user info for API responses
- */
 UserSchema.virtual("shortInfo").get(function () {
   return {
     id: this._id,
@@ -256,15 +181,6 @@ UserSchema.virtual("shortInfo").get(function () {
   };
 });
 
-/**
- * Static Methods
- */
-
-/**
- * Find user by username or email
- * @param {string} identifier - Username to search for
- * @returns {Promise<Object>} - User document
- */
 UserSchema.statics.findByUsernameOrEmail = function (identifier) {
   if (!identifier) return null;
   return this.findOne({
@@ -274,11 +190,6 @@ UserSchema.statics.findByUsernameOrEmail = function (identifier) {
     ]
   });
 };
-
-/**
- * Get active users count by role
- * @returns {Promise<Object>} - Counts by role
- */
 UserSchema.statics.getRoleCounts = async function () {
   const counts = await this.aggregate([
     { $group: { _id: "$role", count: { $sum: 1 } } }
@@ -290,9 +201,6 @@ UserSchema.statics.getRoleCounts = async function () {
   }, {});
 };
 
-/**
- * FIXED: Static method to check if email is already in use
- */
 UserSchema.statics.isEmailInUse = async function (email, excludeUserId) {
   if (!email) return false;
   
@@ -305,9 +213,6 @@ UserSchema.statics.isEmailInUse = async function (email, excludeUserId) {
   return !!existing;
 };
 
-/**
- * FIXED: Static method to check if username is already in use
- */
 UserSchema.statics.isUsernameInUse = async function (username, excludeUserId) {
   if (!username) return false;
   
@@ -319,7 +224,6 @@ UserSchema.statics.isUsernameInUse = async function (username, excludeUserId) {
   const existing = await this.findOne(query);
   return !!existing;
 };
-
 // FIXED: Handle duplicate key errors gracefully
 UserSchema.post('save', function(error, doc, next) {
   if (error.code === 11000) {
